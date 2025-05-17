@@ -18,6 +18,7 @@ public class JwtUtil {
     private long expiration = 1000 * 60 * 60;
 
     public String generateToken(UserDetails user) {
+        System.out.println("JWT Token");
         return Jwts.builder()
                 .setSubject(user.getUsername())
                 .claim("role", "ROLE_ADMIN")

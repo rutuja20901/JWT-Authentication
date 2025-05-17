@@ -3,7 +3,7 @@ package com.admin.LoginRegisterData.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,11 +27,13 @@ public class AdminService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private CustomUserDetailsService customUserDetailsService;
 
     public String register(RegisterRequest request) {
         Admin user = new Admin();
@@ -42,12 +44,20 @@ public class AdminService {
     }
 
     public AuthResponse login(AuthRequest request) {
-        System.out.println("checking.....");
-        authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-        UserDetails user = new User(request.getUsername(), "", java.util.List.of(() -> "ROLE_ADMIN"));
-        String token = jwtUtil.generateToken(user);
-        return new AuthResponse(token);
+        try {
+            System.out.println("checking.....");
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(), request.getPassword()));
+            UserDetails user = customUserDetailsService.loadUserByUsername(request.getUsername());
+            String token = jwtUtil.generateToken(user);
+            System.out.println("AuthenticationManager class: " + authenticationManager.getClass());
+
+            return new AuthResponse(token);
+        } catch (AuthenticationException e) {
+            System.out.println("Authentication failed" + e.getMessage());
+            throw new RuntimeException("Invalid username and password");
+        }
     }
 
 }
